@@ -1,5 +1,4 @@
-import React from "react";
-import { Shield, Search, FileText, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { Shield, Search, FileText, AlertTriangle, Activity } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../services/api";
 

@@ -2,7 +2,7 @@
  * IDIntel Ghana API client.
  * Handles authentication, request signing, and error normalization.
  */
-import axios, { type AxiosInstance, type AxiosRequestConfig } from "axios";
+import axios, { type AxiosInstance } from "axios";
 import type {
   AuditEvent,
   FraudScoreResponse,
