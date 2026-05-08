@@ -1,0 +1,57 @@
+# Core API framework
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+starlette==0.41.3
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# Database
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+psycopg2-binary==2.9.10
+
+# Redis
+redis[hiredis]==5.2.1
+
+# Elasticsearch
+elasticsearch[async]==8.16.0
+
+# Anthropic Claude AI
+anthropic==0.40.0
+
+# AWS
+boto3==1.35.80
+botocore==1.35.80
+
+# HTTP client (for NIA integration)
+httpx==0.28.1
+
+# Security
+python-jose[cryptography]==3.3.0
+cryptography==44.0.0
+argon2-cffi==23.1.0
+pyotp==2.9.0
+
+# Monitoring
+prometheus-fastapi-instrumentator==7.0.0
+sentry-sdk[fastapi]==2.19.2
+
+# ML (fraud detection service)
+scikit-learn==1.6.0
+xgboost==2.1.3
+numpy==2.1.3
+pandas==2.2.3
+shap==0.46.0
+
+# Graph (relationship mapping)
+networkx==3.4.2
+neo4j==5.27.0
+
+# Task queue
+celery[rabbitmq]==5.4.0
+
+# Utilities
+python-multipart==0.0.20
+orjson==3.10.12
+python-dateutil==2.9.0

@@ -1,0 +1,261 @@
+name: CI — Build, Test, Security Scan
+
+on:
+  push:
+    branches: [main, develop, "claude/**", "feature/**"]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  security-events: write
+  id-token: write
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+
+jobs:
+  # ============================================================
+  # Backend: Lint, Type Check, Unit Tests
+  # ============================================================
+  backend-test:
+    name: Backend — Test & Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: idintel_test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest pytest-asyncio pytest-cov httpx
+
+      - name: Lint with Ruff
+        run: |
+          pip install ruff
+          ruff check backend/ --output-format=github
+
+      - name: Type check with mypy
+        run: |
+          pip install mypy types-redis
+          mypy backend/ --ignore-missing-imports --strict || true  # Non-blocking for now
+
+      - name: Run unit tests
+        env:
+          DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/idintel_test"
+          REDIS_URL: "redis://localhost:6379/0"
+          SECRET_KEY: "test-secret-key-64-chars-000000000000000000000000000000000000000000"
+          JWT_PRIVATE_KEY_PATH: "tests/fixtures/test_private_key.pem"
+          JWT_PUBLIC_KEY_PATH: "tests/fixtures/test_public_key.pem"
+          ENVIRONMENT: "development"
+          AWS_KMS_KEY_ID: "test-kms-key-id"
+          AWS_KMS_AUDIT_KEY_ID: "test-audit-kms-key-id"
+          NIA_API_BASE_URL: "http://mock-nia:8080"
+          ANTHROPIC_API_KEY: "test-key"
+          ELASTICSEARCH_URL: "http://localhost:9200"
+          ELASTICSEARCH_API_KEY: "test"
+          NEO4J_URI: "bolt://localhost:7687"
+          NEO4J_USER: "neo4j"
+          NEO4J_PASSWORD: "test"
+          CELERY_BROKER_URL: "memory://"
+          CELERY_RESULT_BACKEND: "cache+memory://"
+          AWS_S3_BUCKET_REPORTS: "test-bucket"
+          AWS_S3_BUCKET_AUDIT: "test-audit-bucket"
+        run: |
+          pytest backend/tests/ -v --cov=backend --cov-report=xml --cov-report=term-missing \
+            -x --tb=short
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: backend
+
+  # ============================================================
+  # Frontend: Build & Test
+  # ============================================================
+  frontend-test:
+    name: Frontend — Build & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Type check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Run tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Build production bundle
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: "https://api.idintel.com.gh"
+        run: npm run build
+
+  # ============================================================
+  # SAST Security Scanning
+  # ============================================================
+  sast:
+    name: Security — SAST (Semgrep + Bandit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bandit (Python security)
+        run: |
+          pip install bandit[toml]
+          bandit -r backend/ -ll -f json -o bandit-report.json || true
+          cat bandit-report.json
+
+      - name: Semgrep SAST
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/python
+            p/owasp-top-ten
+            p/secrets
+            p/sql-injection
+            p/jwt
+          generateSarif: true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+        if: always()
+
+  # ============================================================
+  # Software Composition Analysis
+  # ============================================================
+  sca:
+    name: Security — SCA (Dependency Vulnerabilities)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Snyk Python scan
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=backend/requirements.txt --severity-threshold=high
+        continue-on-error: true
+
+      - name: Snyk Node scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=frontend/package.json --severity-threshold=high
+        continue-on-error: true
+
+  # ============================================================
+  # Container Image Security
+  # ============================================================
+  container-scan:
+    name: Security — Container Image Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API Gateway image
+        run: docker build -t idintel-api-gateway:test backend/api_gateway/
+
+      - name: Trivy container scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "idintel-api-gateway:test"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "HIGH,CRITICAL"
+          exit-code: "1"
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+        if: always()
+
+  # ============================================================
+  # Infrastructure security scan
+  # ============================================================
+  terraform-security:
+    name: Security — Terraform (tfsec + checkov)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: tfsec
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          working_directory: infrastructure/terraform
+          soft_fail: true
+
+      - name: Checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: infrastructure/terraform
+          framework: terraform
+          soft_fail: true
+
+  # ============================================================
+  # All checks passed — gate for merge
+  # ============================================================
+  all-checks-pass:
+    name: All Checks Passed
+    needs: [backend-test, frontend-test, sast, sca]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All required checks passed"

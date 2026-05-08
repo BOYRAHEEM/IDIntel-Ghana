@@ -1,0 +1,78 @@
+# Environment files — NEVER commit secrets
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+venv/
+.venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# Node / Frontend
+node_modules/
+dist/
+build/
+.cache/
+.vite/
+
+# Keys and certificates — NEVER commit private keys
+keys/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+certs/
+
+# ML models (large binaries)
+ml/models/
+*.pkl
+*.joblib
+*.h5
+*.pt
+*.onnx
+
+# IDE
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Terraform state (use remote state)
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.auto.tfvars
+
+# Logs
+*.log
+logs/
+
+# Temporary
+tmp/
+temp/
+.tmp/
