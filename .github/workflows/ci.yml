@@ -133,7 +133,7 @@ jobs:
 
       - name: Type check
         working-directory: frontend
-        run: npx tsc -b --noEmit
+        run: npx tsc --noEmit
 
       - name: Lint
         working-directory: frontend
