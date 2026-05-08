@@ -1,7 +1,5 @@
 """Ed25519 signing for immutable audit records."""
-import hashlib
 import json
-from datetime import datetime, timezone
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
@@ -41,7 +39,6 @@ def sign_audit_record(record_data: dict) -> str:
 def verify_audit_record(record_data: dict, signature_hex: str) -> bool:
     """Verify a previously signed audit record. Returns False if tampered."""
     try:
-        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
         public_key = _get_signing_key().public_key()
         canonical = json.dumps(record_data, sort_keys=True, default=str).encode("utf-8")
         public_key.verify(bytes.fromhex(signature_hex), canonical)

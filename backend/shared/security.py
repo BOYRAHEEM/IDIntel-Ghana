@@ -11,7 +11,7 @@ from typing import Any
 
 import boto3
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from jose import JWTError, jwt
+from jose import jwt
 
 from .config import get_settings
 

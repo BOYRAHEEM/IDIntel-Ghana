@@ -1,6 +1,6 @@
 """Basic health and smoke tests for the API Gateway."""
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, AsyncMock
 
 
 def test_settings_loads():

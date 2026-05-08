@@ -5,9 +5,6 @@ so that no PEM files need to be committed to version control.
 """
 import os
 import tempfile
-from pathlib import Path
-
-import pytest
 
 
 def _generate_test_rsa_keys(tmp_dir: str) -> tuple[str, str]:

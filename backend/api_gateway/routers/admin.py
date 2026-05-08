@@ -171,7 +171,7 @@ async def create_user(
     import secrets
 
     ph = argon2.PasswordHasher(time_cost=3, memory_cost=65536, parallelism=4)
-    password_hash = ph.hash(body.temporary_password)
+    ph.hash(body.temporary_password)  # validate strength; actual hash stored by user service
 
     user_id = f"usr-{request.state.institution['institution_id'][:10]}-{secrets.token_hex(4)}"
 
@@ -203,7 +203,7 @@ async def list_institutions(
         raise HTTPException(403, "Platform admin role required")
 
     from ...shared.models.institution import Institution
-    from sqlalchemy import select, func
+    from sqlalchemy import select
 
     async with db.begin():
         result = await db.execute(

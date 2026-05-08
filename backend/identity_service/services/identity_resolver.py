@@ -9,10 +9,9 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...shared.models.identity import DocumentStatus, IdentityRecord, VerificationStatus
+from ...shared.models.identity import DocumentStatus, IdentityRecord
 from ...shared.utils.encryption import (
     GhanaCardValidator,
-    decrypt_pii_field,
     encrypt_pii_field,
     make_search_hash,
 )

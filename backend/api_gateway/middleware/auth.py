@@ -99,7 +99,7 @@ async def _validate_api_key(raw_key: str) -> dict | None:
         result = await session.execute(
             select(APIKey, Institution)
             .join(Institution, APIKey.institution_id == Institution.id)
-            .where(APIKey.key_prefix == prefix, APIKey.is_active == True)
+            .where(APIKey.key_prefix == prefix, APIKey.is_active)
         )
         row = result.first()
 

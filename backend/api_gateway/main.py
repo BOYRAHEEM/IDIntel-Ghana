@@ -71,7 +71,10 @@ async def security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
-    response.headers.pop("Server", None)
+    try:
+        del response.headers["Server"]
+    except KeyError:
+        pass
     return response
 
 

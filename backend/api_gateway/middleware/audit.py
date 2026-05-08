@@ -46,8 +46,12 @@ async def _write_audit_record(request: Request, response: Response, duration_ms:
         user_agent = request.headers.get("User-Agent", "")
 
         # Extract subject hash from response headers (set by routers)
-        subject_id_hash = response.headers.pop("X-Audit-Subject-Hash", None)
-        identity_id_str = response.headers.pop("X-Audit-Identity-ID", None)
+        subject_id_hash = response.headers.get("X-Audit-Subject-Hash")
+        for header in ("X-Audit-Subject-Hash", "X-Audit-Identity-ID"):
+            try:
+                del response.headers[header]
+            except KeyError:
+                pass
 
         import uuid
 

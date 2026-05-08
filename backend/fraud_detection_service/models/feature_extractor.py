@@ -4,7 +4,6 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 
 from ...shared.models.identity import IdentityRecord
-from ...shared.utils.encryption import decrypt_pii_field
 
 
 class FeatureExtractor:
