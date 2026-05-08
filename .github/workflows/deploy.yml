@@ -2,8 +2,15 @@ name: Deploy — Production
 
 on:
   push:
-    branches: [main]
     tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "staging"
+        type: choice
+        options: [staging, production]
 
 permissions:
   contents: read
@@ -22,22 +29,36 @@ jobs:
     timeout-minutes: 30
 
     strategy:
+      fail-fast: false
       matrix:
         service: [api-gateway, identity-service, ai-intelligence-service, fraud-detection-service, audit-service]
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check AWS credentials are configured
+        id: check_secrets
+        run: |
+          if [[ -z "${{ secrets.AWS_DEPLOY_ROLE_ARN }}" ]]; then
+            echo "AWS_DEPLOY_ROLE_ARN secret not set — skipping deploy" >&2
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Configure AWS credentials (OIDC)
+        if: steps.check_secrets.outputs.skip == 'false'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to ECR
+        if: steps.check_secrets.outputs.skip == 'false'
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push ${{ matrix.service }}
+        if: steps.check_secrets.outputs.skip == 'false'
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
