@@ -21,14 +21,6 @@ from .routers import admin, fraud, identity, intelligence
 
 settings = get_settings()
 
-if settings.sentry_dsn:
-    sentry_sdk.init(
-        dsn=settings.sentry_dsn,
-        environment=settings.environment,
-        traces_sample_rate=0.1,
-        before_send=_strip_pii_from_sentry_event,
-    )
-
 
 def _strip_pii_from_sentry_event(event, hint):
     """Remove any PII before sending to Sentry."""
@@ -36,6 +28,15 @@ def _strip_pii_from_sentry_event(event, hint):
         event["request"].pop("data", None)
         event["request"].pop("headers", None)
     return event
+
+
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.environment,
+        traces_sample_rate=0.1,
+        before_send=_strip_pii_from_sentry_event,
+    )
 
 
 @asynccontextmanager
