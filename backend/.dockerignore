@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.coverage
+coverage.xml
+htmlcov/
+tests/
+.env
+*.pem
+*.key
+*.pfx
+.git
+.gitignore
