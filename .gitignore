@@ -33,6 +33,9 @@ build/
 *.tsbuildinfo
 .cache/
 .vite/
+# TypeScript composite project emit artifacts (vite.config.ts)
+vite.config.js
+vite.config.d.ts
 
 # Keys and certificates — NEVER commit private keys
 keys/
