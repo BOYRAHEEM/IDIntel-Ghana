@@ -1,2 +1,1 @@
-// Global test setup
-import "@testing-library/jest-dom";
+// Global test setup — vitest environment initialisation
